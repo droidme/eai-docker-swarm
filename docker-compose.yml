@@ -1,0 +1,127 @@
+version: '3.8'
+
+services:
+  # Traefik Reverse Proxy
+  traefik:
+    image: traefik:v3.3.6
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"  # Traefik Dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro        # Give access to the UNIX Docker socket
+      - /etc/localtime:/etc/localtime:ro                    # Set the container timezone by sharing the read-only localtime
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro   # Set the static configuration
+    networks:
+      - eai-network
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.traefik.rule=Host(`traefik.localhost`)
+        - traefik.http.services.traefik.loadbalancer.server.port=8080
+
+  # Prometheus Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus-data:/prometheus
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - eai-network
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.prometheus.rule=Host(`prometheus.localhost`)
+        - traefik.http.services.prometheus.loadbalancer.server.port=9090
+      replicas: 1
+
+  # Grafana Dashboard
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - eai-network
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.grafana.rule=Host(`grafana.localhost`)
+        - traefik.http.services.grafana.loadbalancer.server.port=3000
+      replicas: 1
+
+  # EAI Adapter Sample
+  eai-adapter-sample:
+    image: eai-adapter-sample:latest
+    environment:
+      - SPRING_PROFILES_ACTIVE=swarm
+      - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info,metrics,prometheus
+      - MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS=always
+      - MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED=true
+      - CAMEL_COMPONENT_MICROMETER_ENABLED=true
+    networks:
+      - eai-network
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.eai-adapter-sample.rule=Host(`adapter-sample.localhost`)
+        - traefik.http.services.eai-adapter-sample.loadbalancer.server.port=8080
+        - monitoring=enabled
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+
+  # EAI Adapter Orders
+  eai-adapter-orders:
+    image: eai-adapter-orders:latest
+    environment:
+      - SPRING_PROFILES_ACTIVE=swarm
+      - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info,metrics,prometheus
+      - MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS=always
+      - MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED=true
+      - CAMEL_COMPONENT_MICROMETER_ENABLED=true
+    networks:
+      - eai-network
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.eai-adapter-orders.rule=Host(`adapter-orders.localhost`)
+        - traefik.http.services.eai-adapter-orders.loadbalancer.server.port=8080
+        - monitoring=enabled
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+
+networks:
+  eai-network:
+    driver: overlay
+    attachable: true
+
+volumes:
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
