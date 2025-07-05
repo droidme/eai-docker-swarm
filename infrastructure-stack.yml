@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # Traefik Reverse Proxy
+  traefik:
+    image: traefik:v3.0
+    command:
+      - --api.dashboard=true
+      - --api.insecure=true
+      - --providers.docker=true
+      - --providers.docker.swarmMode=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --metrics.prometheus=true
+      - --metrics.prometheus.addEntryPointsLabels=true
+      - --metrics.prometheus.addServicesLabels=true
+      - --log.level=INFO
+      - --accesslog=true
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"  # Traefik Dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik-data:/data
+    networks:
+      - eai-network
+      - monitoring-network
+      - traefik-network
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.traefik.rule=Host(`traefik.localhost`)
+        - traefik.http.services.traefik.loadbalancer.server.port=8080
+        - traefik.http.routers.traefik.service=api@internal
+        - infrastructure.stack=true
+        - infrastructure.component=reverse-proxy
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 30s
+        failure_action: rollback
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+
+networks:
+  eai-network:
+    external: true
+  monitoring-network:
+    external: true
+  traefik-network:
+    driver: overlay
+    attachable: true
+
+volumes:
+  traefik-data:
+    driver: local

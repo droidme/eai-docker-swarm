@@ -1,0 +1,126 @@
+version: '3.8'
+
+services:
+  # Prometheus Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus-data:/prometheus
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/alerts:/etc/prometheus/alerts
+    networks:
+      - eai-network
+      - monitoring-network
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.prometheus.rule=Host(`prometheus.localhost`)
+        - traefik.http.services.prometheus.loadbalancer.server.port=9090
+        - monitoring.stack=true
+        - monitoring.component=metrics
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 30s
+      restart_policy:
+        condition: on-failure
+
+  # Grafana Dashboard
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/var/lib/grafana/dashboards/eai-overview.json
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - monitoring-network
+    depends_on:
+      - prometheus
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.grafana.rule=Host(`grafana.localhost`)
+        - traefik.http.services.grafana.loadbalancer.server.port=3000
+        - monitoring.stack=true
+        - monitoring.component=dashboards
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 30s
+      restart_policy:
+        condition: on-failure
+
+  # AlertManager
+  alertmanager:
+    image: prom/alertmanager:latest
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://alertmanager.localhost'
+      - '--web.route-prefix=/'
+    ports:
+      - "9093:9093"
+    volumes:
+      - alertmanager-data:/alertmanager
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    networks:
+      - monitoring-network
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.alertmanager.rule=Host(`alertmanager.localhost`)
+        - traefik.http.services.alertmanager.loadbalancer.server.port=9093
+        - monitoring.stack=true
+        - monitoring.component=alerting
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  # Node Exporter für System-Metriken
+  node-exporter:
+    image: prom/node-exporter:latest
+    command:
+      - '--path.rootfs=/host'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /:/host:ro,rslave
+    networks:
+      - monitoring-network
+    deploy:
+      mode: global
+      labels:
+        - monitoring.stack=true
+        - monitoring.component=system-metrics
+      restart_policy:
+        condition: on-failure
+
+networks:
+  eai-network:
+    external: true
+  monitoring-network:
+    driver: overlay
+    attachable: true
+
+volumes:
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+  alertmanager-data:
+    driver: local

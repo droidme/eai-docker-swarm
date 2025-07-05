@@ -1,0 +1,213 @@
+version: '3.8'
+
+services:
+  # EAI Adapter Sample
+  eai-adapter-sample:
+    image: eai-adapter-sample:latest
+    environment:
+      - SPRING_PROFILES_ACTIVE=swarm
+      - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info,metrics,prometheus,camel
+      - MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS=always
+      - MANAGEMENT_ENDPOINT_HEALTH_SHOW_COMPONENTS=always
+      - MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED=true
+      - CAMEL_COMPONENT_MICROMETER_ENABLED=true
+      - CAMEL_METRICS_ROUTE_POLICY_ENABLED=true
+      - LOGGING_LEVEL_ORG_APACHE_CAMEL=INFO
+      - JAVA_OPTS=-Xmx512m -Xms256m -XX:+UseG1GC
+    networks:
+      - eai-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.eai-adapter-sample.rule=Host(`adapter-sample.localhost`)
+        - traefik.http.services.eai-adapter-sample.loadbalancer.server.port=8080
+        - eai.adapter.type=sample
+        - eai.adapter.version=1.0.0
+        - prometheus.scrape=true
+        - prometheus.port=8080
+        - prometheus.path=/actuator/prometheus
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 30s
+        failure_action: rollback
+        order: start-first
+      rollback_config:
+        parallelism: 1
+        delay: 30s
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 120s
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.role == worker
+
+  # EAI Adapter Orders
+  eai-adapter-orders:
+    image: eai-adapter-orders:latest
+    environment:
+      - SPRING_PROFILES_ACTIVE=swarm
+      - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info,metrics,prometheus,camel
+      - MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS=always
+      - MANAGEMENT_ENDPOINT_HEALTH_SHOW_COMPONENTS=always
+      - MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED=true
+      - CAMEL_COMPONENT_MICROMETER_ENABLED=true
+      - CAMEL_METRICS_ROUTE_POLICY_ENABLED=true
+      - LOGGING_LEVEL_ORG_APACHE_CAMEL=INFO
+      - JAVA_OPTS=-Xmx512m -Xms256m -XX:+UseG1GC
+      # Adapter-spezifische Konfiguration
+      - EAI_ORDERS_DB_URL=jdbc:postgresql://config-db:5432/eai_config
+      - EAI_ORDERS_DB_USERNAME=eai_admin
+      - EAI_ORDERS_DB_PASSWORD_FILE=/run/secrets/config_db_password
+      - EAI_ORDERS_EXTERNAL_API_URL=http://external-orders-api:8080/api/v1
+    networks:
+      - eai-network
+    secrets:
+      - config_db_password
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.eai-adapter-orders.rule=Host(`adapter-orders.localhost`)
+        - traefik.http.services.eai-adapter-orders.loadbalancer.server.port=8080
+        - eai.adapter.type=orders
+        - eai.adapter.version=1.0.0
+        - prometheus.scrape=true
+        - prometheus.port=8080
+        - prometheus.path=/actuator/prometheus
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 30s
+        failure_action: rollback
+        order: start-first
+      rollback_config:
+        parallelism: 1
+        delay: 30s
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == worker
+
+  # EAI Adapter Products (Zusätzlicher Adapter als Beispiel)
+  eai-adapter-products:
+    image: eai-adapter-products:latest
+    environment:
+      - SPRING_PROFILES_ACTIVE=swarm
+      - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info,metrics,prometheus,camel
+      - MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS=always
+      - MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED=true
+      - CAMEL_COMPONENT_MICROMETER_ENABLED=true
+      - JAVA_OPTS=-Xmx768m -Xms384m -XX:+UseG1GC
+      - EAI_PRODUCTS_BATCH_SIZE=100
+      - EAI_PRODUCTS_PROCESSING_INTERVAL=60000
+    networks:
+      - eai-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.eai-adapter-products.rule=Host(`adapter-products.localhost`)
+        - traefik.http.services.eai-adapter-products.loadbalancer.server.port=8080
+        - eai.adapter.type=products
+        - eai.adapter.version=1.0.0
+        - prometheus.scrape=true
+        - prometheus.port=8080
+        - prometheus.path=/actuator/prometheus
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 30s
+        failure_action: rollback
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      placement:
+        constraints:
+          - node.role == worker
+
+  # Message Queue (Redis) für Adapter-Kommunikation
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --requirepass eai-redis-password
+    volumes:
+      - redis-data:/data
+    networks:
+      - eai-network
+    deploy:
+      labels:
+        - eai.service.type=infrastructure
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      restart_policy:
+        condition: on-failure
+
+  # Shared Database für Adapter-Konfiguration
+  config-db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=eai_config
+      - POSTGRES_USER=eai_admin
+      - POSTGRES_PASSWORD_FILE=/run/secrets/config_db_password
+    volumes:
+      - config-db-data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+    networks:
+      - eai-network
+    secrets:
+      - config_db_password
+    deploy:
+      labels:
+        - eai.service.type=infrastructure
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      restart_policy:
+        condition: on-failure
+
+networks:
+  eai-network:
+    external: true
+
+volumes:
+  redis-data:
+    driver: local
+  config-db-data:
+    driver: local
+
+secrets:
+  config_db_password:
+    external: true
+
+configs:
+  eai_global_config:
+    file: ./configs/eai-global-config.yml
+  adapter_logging_config:
+    file: ./configs/logback-spring.xml
