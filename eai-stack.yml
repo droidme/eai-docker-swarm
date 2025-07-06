@@ -14,6 +14,11 @@ services:
       - CAMEL_METRICS_ROUTE_POLICY_ENABLED=true
       - LOGGING_LEVEL_ORG_APACHE_CAMEL=INFO
       - JAVA_OPTS=-Xmx512m -Xms256m -XX:+UseG1GC
+      # EAI Konfiguration über Environment Variables
+      - EAI_POLLING_INTERVAL=30000
+      - EAI_BATCH_SIZE=100
+      - EAI_RETRY_ATTEMPTS=3
+      - EAI_TIMEOUT=10000
     networks:
       - eai-network
     healthcheck:
@@ -64,15 +69,15 @@ services:
       - CAMEL_METRICS_ROUTE_POLICY_ENABLED=true
       - LOGGING_LEVEL_ORG_APACHE_CAMEL=INFO
       - JAVA_OPTS=-Xmx512m -Xms256m -XX:+UseG1GC
-      # Adapter-spezifische Konfiguration
-      - EAI_ORDERS_DB_URL=jdbc:postgresql://config-db:5432/eai_config
-      - EAI_ORDERS_DB_USERNAME=eai_admin
-      - EAI_ORDERS_DB_PASSWORD_FILE=/run/secrets/config_db_password
+      # Orders Adapter spezifische Konfiguration
+      - EAI_ORDERS_POLLING_INTERVAL=60000
+      - EAI_ORDERS_BATCH_SIZE=50
+      - EAI_ORDERS_RETRY_ATTEMPTS=5
+      - EAI_ORDERS_TIMEOUT=15000
       - EAI_ORDERS_EXTERNAL_API_URL=http://external-orders-api:8080/api/v1
+      - EAI_ORDERS_QUEUE_NAME=orders-processing
     networks:
       - eai-network
-    secrets:
-      - config_db_password
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
       interval: 30s
@@ -107,7 +112,7 @@ services:
         constraints:
           - node.role == worker
 
-  # EAI Adapter Products (Zusätzlicher Adapter als Beispiel)
+  # EAI Adapter Products
   eai-adapter-products:
     image: eai-adapter-products:latest
     environment:
@@ -117,8 +122,13 @@ services:
       - MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED=true
       - CAMEL_COMPONENT_MICROMETER_ENABLED=true
       - JAVA_OPTS=-Xmx768m -Xms384m -XX:+UseG1GC
-      - EAI_PRODUCTS_BATCH_SIZE=100
-      - EAI_PRODUCTS_PROCESSING_INTERVAL=60000
+      # Products Adapter spezifische Konfiguration
+      - EAI_PRODUCTS_POLLING_INTERVAL=120000
+      - EAI_PRODUCTS_BATCH_SIZE=200
+      - EAI_PRODUCTS_RETRY_ATTEMPTS=3
+      - EAI_PRODUCTS_TIMEOUT=20000
+      - EAI_PRODUCTS_CACHE_TTL=300
+      - EAI_PRODUCTS_EXTERNAL_API_URL=http://external-products-api:8080/api/v1
     networks:
       - eai-network
     healthcheck:
@@ -168,30 +178,6 @@ services:
       restart_policy:
         condition: on-failure
 
-  # Shared Database für Adapter-Konfiguration
-  config-db:
-    image: postgres:15-alpine
-    environment:
-      - POSTGRES_DB=eai_config
-      - POSTGRES_USER=eai_admin
-      - POSTGRES_PASSWORD_FILE=/run/secrets/config_db_password
-    volumes:
-      - config-db-data:/var/lib/postgresql/data
-      - ./database/init:/docker-entrypoint-initdb.d
-    networks:
-      - eai-network
-    secrets:
-      - config_db_password
-    deploy:
-      labels:
-        - eai.service.type=infrastructure
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == worker
-      restart_policy:
-        condition: on-failure
-
 networks:
   eai-network:
     external: true
@@ -199,15 +185,3 @@ networks:
 volumes:
   redis-data:
     driver: local
-  config-db-data:
-    driver: local
-
-secrets:
-  config_db_password:
-    external: true
-
-configs:
-  eai_global_config:
-    file: ./configs/eai-global-config.yml
-  adapter_logging_config:
-    file: ./configs/logback-spring.xml
