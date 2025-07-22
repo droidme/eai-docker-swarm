@@ -88,7 +88,7 @@ All configuration is handled via environment variables in the stack files:
 
 ### Service Access URLs
 - Traefik Dashboard: http://traefik.localhost:8080
-- Portainer: http://portainer.localhost (container management)
+- Portainer: http://portainer.localhost (admin/admin)
 - Prometheus: http://prometheus.localhost:9090
 - Grafana: http://grafana.localhost:3000 (admin/admin)
 - Adapters: http://adapter-{name}.localhost
