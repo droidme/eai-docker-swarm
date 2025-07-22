@@ -40,6 +40,7 @@ services:
   # Portainer Container Management
   portainer:
     image: portainer/portainer-ce:latest
+    command: --admin-password='admin'
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - portainer-data:/data
