@@ -10,12 +10,9 @@ services:
       - "8080:8080"  # Traefik Dashboard
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - traefik-data:/data
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
     networks:
       - eai-network
-      - monitoring-network
-      - traefik-network
     deploy:
       placement:
         constraints:
@@ -43,9 +40,8 @@ services:
     command: --admin-password='$$2a$$10$$N0zV2WJigQYzvhcTACCRhOuX.rhHJgKV6cAEYhfNuKgE7.1vEU5Yu'
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - portainer-data:/data
     networks:
-      - traefik-network
+      - eai-network
     deploy:
       placement:
         constraints:
@@ -70,14 +66,3 @@ services:
 networks:
   eai-network:
     external: true
-  monitoring-network:
-    external: true
-  traefik-network:
-    driver: overlay
-    attachable: true
-
-volumes:
-  traefik-data:
-    driver: local
-  portainer-data:
-    driver: local

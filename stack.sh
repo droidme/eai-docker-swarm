@@ -50,7 +50,7 @@ check_swarm() {
 
 # Create networks
 create_networks() {
-    local networks=("eai-network" "monitoring-network")
+    local networks=("eai-network")
     for network in "${networks[@]}"; do
         if ! docker network ls | grep -q "$network"; then
             docker network create --driver overlay --attachable "$network" > /dev/null 2>&1
@@ -127,7 +127,7 @@ show_status() {
     
     echo ""
     echo -e "${CYAN}NETWORK STATUS${NC}"
-    local networks=("eai-network" "monitoring-network")
+    local networks=("eai-network")
     for network in "${networks[@]}"; do
         if docker network ls | grep -q "$network"; then
             local containers=$(docker network inspect "$network" --format "{{len .Containers}}" 2>/dev/null || echo "0")

@@ -19,7 +19,6 @@ services:
       - ./prometheus/alerts:/etc/prometheus/alerts
     networks:
       - eai-network
-      - monitoring-network
     deploy:
       labels:
         - traefik.enable=true
@@ -49,7 +48,7 @@ services:
       - ./grafana/provisioning:/etc/grafana/provisioning
       - ./grafana/dashboards:/var/lib/grafana/dashboards
     networks:
-      - monitoring-network
+      - eai-network
     depends_on:
       - prometheus
     deploy:
@@ -80,7 +79,7 @@ services:
       - alertmanager-data:/alertmanager
       - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
     networks:
-      - monitoring-network
+      - eai-network
     deploy:
       labels:
         - traefik.enable=true
@@ -101,7 +100,7 @@ services:
     volumes:
       - /:/host:ro,rslave
     networks:
-      - monitoring-network
+      - eai-network
     deploy:
       mode: global
       labels:
@@ -113,9 +112,6 @@ services:
 networks:
   eai-network:
     external: true
-  monitoring-network:
-    driver: overlay
-    attachable: true
 
 volumes:
   prometheus-data:
