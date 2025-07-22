@@ -116,12 +116,12 @@ show_status() {
         if docker stack ls --format "{{.Name}}" | grep -q "${stack}-stack"; then
             local services=$(docker stack services "${stack}-stack" --format "{{.Name}}" | wc -l)
             local running=$(docker stack services "${stack}-stack" --format "{{.Replicas}}" | grep -o "^[0-9]*" | awk '{s+=$1} END {print s}')
-            echo -e "${GREEN}✓ ${stack^} Stack${NC} ($services services, $running replicas)"
+            echo -e "${GREEN}✓ $(echo ${stack} | sed 's/./\U&/') Stack${NC} ($services services, $running replicas)"
             
             # Show service details
             docker stack services "${stack}-stack" --format "  {{.Name}}: {{.Replicas}}" 2>/dev/null | sed 's/.*_/  /'
         else
-            echo -e "${RED}✗ ${stack^} Stack${NC} (not deployed)"
+            echo -e "${RED}✗ $(echo ${stack} | sed 's/./\U&/') Stack${NC} (not deployed)"
         fi
     done
     
@@ -143,6 +143,7 @@ show_status() {
     # Check service availability
     local endpoints=(
         "http://traefik.localhost:8080|Traefik Dashboard"
+        "http://portainer.localhost|Portainer"
         "http://prometheus.localhost:9090|Prometheus"
         "http://grafana.localhost:3000|Grafana"
         "http://adapter-sample.localhost/actuator/health|Sample Adapter"
@@ -293,6 +294,7 @@ show_access_info() {
     echo ""
     echo -e "${YELLOW}Infrastructure:${NC}"
     echo "  Traefik Dashboard: http://traefik.localhost:8080"
+    echo "  Portainer:         http://portainer.localhost"
     echo ""
     echo -e "${YELLOW}Monitoring:${NC}"
     echo "  Prometheus:        http://prometheus.localhost:9090"
@@ -310,7 +312,7 @@ show_access_info() {
     echo "  curl http://adapter-products.localhost/actuator/health"
     echo ""
     echo -e "${YELLOW}Add to /etc/hosts:${NC}"
-    echo "  127.0.0.1 traefik.localhost prometheus.localhost grafana.localhost"
+    echo "  127.0.0.1 traefik.localhost portainer.localhost prometheus.localhost grafana.localhost"
     echo "  127.0.0.1 alertmanager.localhost adapter-sample.localhost"
     echo "  127.0.0.1 adapter-orders.localhost adapter-products.localhost"
 }

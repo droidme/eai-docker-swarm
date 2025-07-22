@@ -101,6 +101,7 @@ chmod +x stack.sh
 | Stack | Service | URL | Description |
 |-------|---------|-----|-------------|
 | **Infrastructure** | Traefik | http://traefik.localhost:8080 | Reverse proxy dashboard |
+| | Portainer | http://portainer.localhost | Container management UI |
 | **Monitoring** | Prometheus | http://prometheus.localhost:9090 | Metrics & alerts |
 | | Grafana | http://grafana.localhost:3000 | Dashboards (admin/admin) |
 | | AlertManager | http://alertmanager.localhost:9093 | Alert management |
@@ -117,7 +118,7 @@ curl http://adapter-products.localhost/actuator/health
 
 ### **Add to /etc/hosts**
 ```bash
-127.0.0.1 traefik.localhost prometheus.localhost grafana.localhost
+127.0.0.1 traefik.localhost portainer.localhost prometheus.localhost grafana.localhost
 127.0.0.1 alertmanager.localhost adapter-sample.localhost
 127.0.0.1 adapter-orders.localhost adapter-products.localhost
 ```
