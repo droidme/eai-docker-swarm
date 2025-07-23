@@ -37,7 +37,6 @@ services:
   # Portainer Container Management
   portainer:
     image: portainer/portainer-ce:latest
-    command: --admin-password='$$2a$$10$$N0zV2WJigQYzvhcTACCRhOuX.rhHJgKV6cAEYhfNuKgE7.1vEU5Yu'
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:

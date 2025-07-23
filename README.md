@@ -101,7 +101,7 @@ chmod +x stack.sh
 | Stack | Service | URL | Description |
 |-------|---------|-----|-------------|
 | **Infrastructure** | Traefik | http://traefik.localhost:8080 | Reverse proxy dashboard |
-| | Portainer | http://portainer.localhost | Container management UI (admin/admin) |
+| | Portainer | http://portainer.localhost | Container management UI (setup required) |
 | **Monitoring** | Prometheus | http://prometheus.localhost:9090 | Metrics & alerts |
 | | Grafana | http://grafana.localhost:3000 | Dashboards (admin/admin) |
 | | AlertManager | http://alertmanager.localhost:9093 | Alert management |
