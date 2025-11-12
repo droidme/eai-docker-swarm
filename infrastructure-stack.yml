@@ -22,8 +22,6 @@ services:
         - traefik.http.routers.traefik.rule=Host(`traefik.localhost`)
         - traefik.http.services.traefik.loadbalancer.server.port=8080
         - traefik.http.routers.traefik.service=api@internal
-        - infrastructure.stack=true
-        - infrastructure.component=reverse-proxy
       replicas: 1
       update_config:
         parallelism: 1
@@ -49,9 +47,6 @@ services:
         - traefik.enable=true
         - traefik.http.routers.portainer.rule=Host(`portainer.localhost`)
         - traefik.http.services.portainer.loadbalancer.server.port=9000
-        - infrastructure.stack=true
-        - infrastructure.component=container-management
-        - prometheus.scrape=false
       replicas: 1
       update_config:
         parallelism: 1

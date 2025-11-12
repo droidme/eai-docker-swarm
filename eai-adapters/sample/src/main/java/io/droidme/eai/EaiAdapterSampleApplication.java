@@ -1,11 +1,11 @@
-package com.example.eai;
+package io.droidme.eai;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class EaiAdapterOrdersApplication {
+public class EaiAdapterSampleApplication {
     public static void main(String[] args) {
-        SpringApplication.run(EaiAdapterOrdersApplication.class, args);
+        SpringApplication.run(EaiAdapterSampleApplication.class, args);
     }
 }

@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  # EAI Adapter Sample
+  eai-adapter-sample:
+    image: droidme/eai-adapter-sample:latest
+    environment:
+      - SPRING_PROFILES_ACTIVE=test
+      - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info,metrics,prometheus,camel
+      - MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS=always
+      - MANAGEMENT_ENDPOINT_HEALTH_SHOW_COMPONENTS=always
+      - MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED=true
+      - CAMEL_COMPONENT_MICROMETER_ENABLED=true
+      - CAMEL_METRICS_ROUTE_POLICY_ENABLED=true
+      - LOGGING_LEVEL_ORG_APACHE_CAMEL=INFO
+      - JAVA_OPTS=-Xmx512m -Xms256m -XX:+UseG1GC
+      # EAI Konfiguration über Environment Variables
+      - EAI_POLLING_INTERVAL=30000
+      - EAI_BATCH_SIZE=100
+      - EAI_RETRY_ATTEMPTS=3
+      - EAI_TIMEOUT=10000
+    networks:
+      - eai-network
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.eai-adapter-sample.rule=Host(`eai-adapter-sample.localhost`)
+        - traefik.http.services.eai-adapter-sample.loadbalancer.server.port=8080
+        - prometheus.scrape=true
+        - prometheus.port=8080
+        - prometheus.path=/actuator/prometheus
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 120s
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.role == worker
+
+networks:
+  eai-network:
+    external: true

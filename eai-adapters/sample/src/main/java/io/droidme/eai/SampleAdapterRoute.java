@@ -1,4 +1,4 @@
-package com.example.eai;
+package io.droidme.eai;
 
 import org.apache.camel.builder.RouteBuilder;
 import org.springframework.stereotype.Component;

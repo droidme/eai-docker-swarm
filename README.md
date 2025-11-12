@@ -134,7 +134,7 @@ environment:
   - EAI_ORDERS_POLLING_INTERVAL=60000
   - EAI_ORDERS_BATCH_SIZE=50
   - EAI_ORDERS_RETRY_ATTEMPTS=5
-  - EAI_ORDERS_EXTERNAL_API_URL=http://api.example.com
+  - EAI_ORDERS_EXTERNAL_API_URL=http://api.droidme.com
 ```
 
 ### **Runtime Updates**
