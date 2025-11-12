@@ -65,40 +65,18 @@ services:
       restart_policy:
         condition: on-failure
 
-  # AlertManager
-  alertmanager:
-    image: prom/alertmanager:latest
-    command:
-      - '--config.file=/etc/alertmanager/alertmanager.yml'
-      - '--storage.path=/alertmanager'
-      - '--web.external-url=http://alertmanager.localhost'
-      - '--web.route-prefix=/'
-    ports:
-      - "9093:9093"
-    volumes:
-      - alertmanager-data:/alertmanager
-      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
-    networks:
-      - eai-network
-    deploy:
-      labels:
-        - traefik.enable=true
-        - traefik.http.routers.alertmanager.rule=Host(`alertmanager.localhost`)
-        - traefik.http.services.alertmanager.loadbalancer.server.port=9093
-        - monitoring.stack=true
-        - monitoring.component=alerting
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-
   # Node Exporter für System-Metriken
   node-exporter:
     image: prom/node-exporter:latest
     command:
       - '--path.rootfs=/host'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - "9100:9100"
     volumes:
-      - /:/host:ro,rslave
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
     networks:
       - eai-network
     deploy:
@@ -106,6 +84,9 @@ services:
       labels:
         - monitoring.stack=true
         - monitoring.component=system-metrics
+        - prometheus.scrape=true
+        - prometheus.port=9100
+        - prometheus.path=/metrics
       restart_policy:
         condition: on-failure
 

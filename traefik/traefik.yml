@@ -38,6 +38,10 @@ providers:
 
 metrics:
   prometheus:
-    entryPoint: web
     addEntryPointsLabels: true                # Add labels for entry points
     addServicesLabels: true                   # Add labels for services
+    buckets:
+      - 0.1
+      - 0.3
+      - 1.2
+      - 5.0

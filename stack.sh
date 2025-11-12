@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # EAI Docker Swarm Stack Management
-# Simplified deployment script for 3-stack stateless EAI architecture
 
 set -e
 
@@ -17,8 +16,8 @@ NC='\033[0m'
 print_header() {
     echo -e "${CYAN}"
     echo "╔════════════════════════════════════════════════════════════════╗"
-    echo "║                    EAI Docker Swarm Manager                   ║"
-    echo "║                 Stateless 3-Stack Architecture                ║"
+    echo "║                    EAI Docker Swarm Manager                    ║"
+    echo "║                      3-Stack Architecture                      ║"
     echo "╚════════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
 }
@@ -70,7 +69,7 @@ deploy_stack() {
     fi
     
     print_info "Deploying $stack_name stack..."
-    docker stack deploy -c "$stack_file" "$stack_name-stack" > /dev/null 2>&1
+    docker stack deploy -c "$stack_file" "$stack_name" > /dev/null 2>&1
     print_status "$stack_name stack deployed"
 }
 
@@ -78,7 +77,7 @@ deploy_stack() {
 wait_for_service() {
     local service_url=$1
     local service_name=$2
-    local max_retries=${3:-20}
+    local max_retries=${3:-5}
     
     print_info "Waiting for $service_name..."
     local retries=0
@@ -113,13 +112,13 @@ show_status() {
     # Check each stack
     local stacks=("infrastructure" "monitoring" "eai")
     for stack in "${stacks[@]}"; do
-        if docker stack ls --format "{{.Name}}" | grep -q "${stack}-stack"; then
-            local services=$(docker stack services "${stack}-stack" --format "{{.Name}}" | wc -l)
-            local running=$(docker stack services "${stack}-stack" --format "{{.Replicas}}" | grep -o "^[0-9]*" | awk '{s+=$1} END {print s}')
+        if docker stack ls --format "{{.Name}}" | grep -q "${stack}"; then
+            local services=$(docker stack services "${stack}" --format "{{.Name}}" | wc -l)
+            local running=$(docker stack services "${stack}" --format "{{.Replicas}}" | grep -o "^[0-9]*" | awk '{s+=$1} END {print s}')
             echo -e "${GREEN}✓ $(echo ${stack} | sed 's/./\U&/') Stack${NC} ($services services, $running replicas)"
             
             # Show service details
-            docker stack services "${stack}-stack" --format "  {{.Name}}: {{.Replicas}}" 2>/dev/null | sed 's/.*_/  /'
+            docker stack services "${stack}" --format "  {{.Name}}: {{.Replicas}}" 2>/dev/null | sed 's/.*_/  /'
         else
             echo -e "${RED}✗ $(echo ${stack} | sed 's/./\U&/') Stack${NC} (not deployed)"
         fi
@@ -142,7 +141,7 @@ show_status() {
     
     # Check service availability
     local endpoints=(
-        "http://traefik.localhost:8080|Traefik Dashboard"
+        "http://traefik.localhost|Traefik Dashboard"
         "http://portainer.localhost|Portainer"
         "http://prometheus.localhost:9090|Prometheus"
         "http://grafana.localhost:3000|Grafana"
@@ -195,13 +194,13 @@ show_logs() {
         print_error "Usage: $0 logs <service> <stack>"
         echo ""
         echo "Available services:"
-        echo "  infrastructure: traefik"
+        echo "  infrastructure: traefik portainer"
         echo "  monitoring: prometheus, grafana, alertmanager, node-exporter"
         echo "  eai: eai-adapter-sample, eai-adapter-orders, eai-adapter-products, redis"
         return 1
     fi
     
-    local full_service="${stack}-stack_${service}"
+    local full_service="${stack}_${service}"
     print_info "Showing logs for $full_service..."
     docker service logs -f "$full_service"
 }
@@ -217,7 +216,7 @@ scale_service() {
         return 1
     fi
     
-    local full_service="${stack}-stack_${service}"
+    local full_service="${stack}_${service}"
     print_info "Scaling $full_service to $replicas replicas..."
     docker service scale "${full_service}=${replicas}"
     print_status "Service scaled successfully"
@@ -234,7 +233,7 @@ update_service() {
         return 1
     fi
     
-    local full_service="${stack}-stack_${service}"
+    local full_service="${stack}_${service}"
     print_info "Updating $full_service with image $image..."
     docker service update --image "$image" "$full_service"
     print_status "Service update initiated"
@@ -272,11 +271,11 @@ cleanup() {
     case $target in
         all)
             print_info "Removing all stacks..."
-            docker stack rm eai-stack monitoring-stack infrastructure-stack 2>/dev/null || true
+            docker stack rm eai monitoring infrastructure 2>/dev/null || true
             ;;
         infrastructure|monitoring|eai)
             print_info "Removing ${target} stack..."
-            docker stack rm "${target}-stack" 2>/dev/null || true
+            docker stack rm "${target}" 2>/dev/null || true
             ;;
         *)
             print_error "Usage: $0 cleanup [all|infrastructure|monitoring|eai]"

@@ -23,7 +23,7 @@ scrape_configs:
   # Traefik Metriken
   - job_name: 'traefik'
     static_configs:
-      - targets: ['traefik:8080']
+      - targets: ['infrastructure_traefik:8080']
     metrics_path: /metrics
     scrape_interval: 15s
 
@@ -90,7 +90,7 @@ scrape_configs:
   # Node Exporter für System-Metriken
   - job_name: 'node-exporter'
     static_configs:
-      - targets: ['node-exporter:9100']
+      - targets: ['monitoring_node-exporter:9100']
     scrape_interval: 30s
     metrics_path: /metrics
 
