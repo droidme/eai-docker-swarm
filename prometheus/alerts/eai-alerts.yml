@@ -1,0 +1,105 @@
+groups:
+  - name: eai-adapter-alerts
+    rules:
+      - alert: EaiAdapterDown
+        expr: up{job=~"eai-adapter-.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "EAI Adapter {{ $labels.instance }} is down"
+          description: "EAI Adapter {{ $labels.instance }} has been down for more than 1 minute."
+
+      - alert: EaiAdapterHighMemoryUsage
+        expr: (jvm_memory_used_bytes{job=~"eai-adapter-.*", area="heap"} / jvm_memory_max_bytes{job=~"eai-adapter-.*", area="heap"}) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "{{ $labels.instance }} is using {{ $value | humanizePercentage }} of heap memory."
+
+      - alert: EaiAdapterHighCpuUsage
+        expr: process_cpu_usage{job=~"eai-adapter-.*"} > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "{{ $labels.instance }} CPU usage is {{ $value | humanizePercentage }}."
+
+      - alert: CamelRouteHighErrorRate
+        expr: (rate(CamelExchangesFailed[5m]) / rate(CamelExchangesTotal[5m])) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate in Camel route {{ $labels.routeId }}"
+          description: "Route {{ $labels.routeId }} has error rate of {{ $value | humanizePercentage }}."
+
+      - alert: CamelRouteNoTraffic
+        expr: rate(CamelExchangesTotal[10m]) == 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "No traffic in Camel route {{ $labels.routeId }}"
+          description: "Route {{ $labels.routeId }} has not processed any exchanges for 15 minutes."
+
+  - name: infrastructure-alerts
+    rules:
+      - alert: TraefikDown
+        expr: up{job="traefik"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Traefik reverse proxy is down"
+          description: "Traefik has been down for more than 1 minute."
+
+      - alert: PrometheusDown
+        expr: up{job="prometheus"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Prometheus is down"
+          description: "Prometheus has been down for more than 1 minute."
+
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis is down"
+          description: "Redis message queue has been down for more than 1 minute."
+
+      - alert: DatabaseDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL database is down"
+          description: "EAI configuration database has been down for more than 1 minute."
+
+  - name: business-alerts
+    rules:
+      - alert: LowOrderProcessingRate
+        expr: rate(business_orders_processed_total[5m]) < 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low order processing rate"
+          description: "Order processing rate is {{ $value }} orders/second, below threshold of 0.5."
+
+      - alert: HighOrderFailureRate
+        expr: (rate(business_orders_failed_total[5m]) / rate(business_orders_total[5m])) > 0.05
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High order failure rate"
+          description: "Order failure rate is {{ $value | humanizePercentage }}, above threshold of 5%."

@@ -24,3 +24,27 @@ Thumbs.db
 # Temp
 *.tmp
 *.temp
+
+# Runtime data
+prometheus/data/
+grafana/data/
+alertmanager/data/
+logs/
+*.pid
+
+# Environment-specific
+.env.local
+.env.production
+secrets/
+
+# Legacy files - to be removed in v3.0
+README-3stack.md
+README-multistack.md
+README-stateless.md
+STATELESS-IMPLEMENTATION.md
+deploy-multistack.sh
+docker-compose.yml
+eai-stack-with-config.yml
+configs/eai-global-config.yml
+configs/README-environment-config.md
+cleanup.sh
