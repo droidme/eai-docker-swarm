@@ -1,0 +1,5 @@
+###
+GET localhost:8081/actuator/info
+
+###
+GET localhost:8081/actuator/prometheus

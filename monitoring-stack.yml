@@ -11,9 +11,11 @@ services:
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--web.enable-lifecycle'
       - '--web.enable-admin-api'
+    user: root
     ports:
       - "9090:9090"
     volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
       - prometheus-data:/prometheus
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - ./prometheus/alerts:/etc/prometheus/alerts
@@ -24,8 +26,6 @@ services:
         - traefik.enable=true
         - traefik.http.routers.prometheus.rule=Host(`prometheus.localhost`)
         - traefik.http.services.prometheus.loadbalancer.server.port=9090
-        - monitoring.stack=true
-        - monitoring.component=metrics
       replicas: 1
       update_config:
         parallelism: 1
@@ -56,8 +56,6 @@ services:
         - traefik.enable=true
         - traefik.http.routers.grafana.rule=Host(`grafana.localhost`)
         - traefik.http.services.grafana.loadbalancer.server.port=3000
-        - monitoring.stack=true
-        - monitoring.component=dashboards
       replicas: 1
       update_config:
         parallelism: 1
@@ -82,9 +80,8 @@ services:
     deploy:
       mode: global
       labels:
-        - monitoring.stack=true
-        - monitoring.component=system-metrics
         - prometheus.scrape=true
+        - prometheus.scrape.group=node-exporter
         - prometheus.port=9100
         - prometheus.path=/metrics
       restart_policy:

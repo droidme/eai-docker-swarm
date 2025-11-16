@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8081
 
 spring:
   application:
@@ -22,6 +22,8 @@ camel:
   component:
     micrometer:
       enabled: true
+    metrics:
+      metric-registry=prometheusMeterRegistry
 
 logging:
   level:

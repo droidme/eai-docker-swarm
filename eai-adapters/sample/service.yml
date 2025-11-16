@@ -27,18 +27,15 @@ services:
         - traefik.http.routers.eai-adapter-sample.rule=Host(`eai-adapter-sample.localhost`)
         - traefik.http.services.eai-adapter-sample.loadbalancer.server.port=8080
         - prometheus.scrape=true
+        - prometheus.scrape.group=eai
         - prometheus.port=8080
         - prometheus.path=/actuator/prometheus
-      replicas: 2
+      replicas: 1
       restart_policy:
         condition: on-failure
         delay: 10s
         max_attempts: 3
         window: 120s
-      placement:
-        max_replicas_per_node: 1
-        constraints:
-          - node.role == worker
 
 networks:
   eai-network:
